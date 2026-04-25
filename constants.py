@@ -1,0 +1,2 @@
+AGENT = 0
+OPPONENT = 1
