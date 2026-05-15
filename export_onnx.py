@@ -11,5 +11,6 @@ torch.onnx.export(
     "mancala_model.onnx",
     input_names=["state"],
     output_names=["q_values"],
-    opset_version=18
+    opset_version=18,
+    external_data=False,
 )

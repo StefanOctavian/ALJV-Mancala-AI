@@ -34,6 +34,7 @@ class MancalaEnv:
         stones = self.board[pit]
         self.board[pit] = 0
         i = pit
+        reward = 0
 
         # distribute stones
         while stones > 0:
@@ -41,17 +42,33 @@ class MancalaEnv:
             # skip opponent's mancala
             if i == self.opponent_mancala():
                 continue
+            elif i == self.own_mancala() and self.current_player == AGENT:
+                reward += 0.05
             self.board[i] += 1
             stones -= 1
         last_pit = i
 
+        # check bad move: leaving yourself vulnerable to an obvious capture
+        if self.current_player == AGENT:
+            for j in range(7, 11):
+                falls_in_pit = (j + self.board[j]) % 14
+                if self.board[falls_in_pit] == 0 and self.board[12 - falls_in_pit] > 0 \
+                   and not self.own_pit(falls_in_pit):
+                    reward -= 0.1
+
         # capture rule
         if self.own_pit(last_pit) and last_pit != self.own_mancala() and self.board[last_pit] == 1:
             opposite_index = 12 - last_pit
-            self.board[self.own_mancala()] += self.board[opposite_index]
-            self.board[opposite_index] = 0
+            if self.board[opposite_index] > 0:
+                captured = self.board[opposite_index] + 1
+                self.board[self.own_mancala()] += captured
+                self.board[opposite_index] = 0
+                self.board[last_pit] = 0
+                if self.current_player == AGENT:
+                    reward += 0.2 * captured
+                else:
+                    reward -= 0.15 * captured
 
-        reward = 0
         done = False
 
         # terminal condition
@@ -61,10 +78,17 @@ class MancalaEnv:
                 reward = 1
             elif self.board[6] < self.board[13]:
                 reward = -1
+            else:
+                reward = 0.1
 
         # extra turn rule or switch player
         if last_pit != self.own_mancala():
             self.current_player = 1 - self.current_player
+        else:
+            if self.current_player == AGENT:
+                reward += 0.3
+            else:
+                reward -= 0.2
 
         return self.get_state(), reward, done
     
